@@ -1,0 +1,7 @@
+TWITTER_TOKEN = "531510786-kjsZFZKKgfprJ0j2fTlpyEZDscoGuJgk6QivNukv"
+TWITTER_TOKEN_SECRET = "kmDlCXbBsxb5nknodqggh33cwC0wPD3rQ2GhNuf60"
+CONSUMER_KEY = "X1XWOCYDlpKh4RujSOMnw"
+CONSUMER_SECRET = "0PZ0FMb2svYfkWMDMIKmss81FpTCzy3wwzi0dt1TH0c"
+REQUEST_TOKEN_URL = "https://api.twitter.com/oauth/request_token"
+AUTHORIZE_URL = "https://api.twitter.com/oauth/authorize?oauth_token="
+ACCESS_TOKEN_URL = "https://api.twitter.com/oauth/access_token"
