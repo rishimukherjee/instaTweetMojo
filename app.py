@@ -1,6 +1,5 @@
 import json
 import logging
-import getpass
 import requests
 import re
 
@@ -55,6 +54,9 @@ class tweetMojo():
         return offer_key_value
 
     def instamojo_api_request(self, method, path, **kwargs):
+        """
+        Handles POST/GET requests made to the instamojo api.
+        """
         headers = {'X-App-Id': MOJO_APPID}
         if self.mojo_token:
             headers["X-Auth-Token"] = self.mojo_token
@@ -71,25 +73,37 @@ class tweetMojo():
             raise Exception('Unable to decode response.')
 
     def instamojo_auth(self, username, password):
+        """
+        Authenticate instamojo username and password.
+        """
         res = self.instamojo_api_request(method='POST', path='auth/', username=username, password=password)
         if res['success']:
             self.mojo_token = res['token']
         return res
 
-    def instamojo_create_offer(self, **kwargs):
-        if not self.mojo_token:
-            return Exception('Cannot create offer without token')
-        res = self.instamojo_api_request(method='POST', path='offer/', **kwargs)
-        return res
-
     def get_file_upload_url(self):
+        """
+        Get a file upload url from the instamojo REST Api.
+        """
         res = self.instamojo_api_request(method='GET', path='offer/get_file_upload_url/')
         return res
 
     def upload_file_from_url(self, file_upload_url, file_url):
+        """
+        Upload a file from the url to the instamojo api.
+        """
         rec_src = requests.get(file_url)
         rec_dest = requests.post(file_upload_url, files={'fileUpload': rec_src.content})
         return rec_dest.text
+
+    def instamojo_create_offer(self, **kwargs):
+        """
+        Create an instamojo offer.
+        """
+        if not self.mojo_token:
+            return Exception('Cannot create offer without token')
+        res = self.instamojo_api_request(method='POST', path='offer/', **kwargs)
+        return res
 
 if __name__ == '__main__':
 
@@ -125,7 +139,6 @@ if __name__ == '__main__':
             formdata['file_upload_json'] = file_upload_json
             print formdata
             print my_mojo.instamojo_create_offer(**formdata)
-            # Now start working with instamojo API
         else:
             raise Exception("The tweet format does not match the specified format.")
     else:
