@@ -2,15 +2,16 @@ import json
 import logging
 import requests
 import re
+import os
+import urllib2
 
 from config import *
 from sys import argv
 from requests_oauthlib import OAuth1
 
-
 class tweetMojo():
-
     twitter_user = None
+
     twitter_oauth = None
     mojo_token = None
 
@@ -44,7 +45,7 @@ class tweetMojo():
         """
         Check if an instamojo tweet is valid and can be used to generate an offer or not.
         """
-        return "title" in offer_key_value and "desc" in offer_key_value and "file" in offer_key_value and ("usd" in offer_key_value or "inr" in offer_key_value)
+        return "title" in offer_key_value and "desc" in offer_key_value and "file" in offer_key_value and "currency" in offer_key_value and "base" in offer_key_value
 
     def parse_tweet_for_instamojo_offer(self, tweet):
         """
@@ -92,8 +93,9 @@ class tweetMojo():
         """
         Upload a file from the url to the instamojo api.
         """
-        rec_src = requests.get(file_url)
-        rec_dest = requests.post(file_upload_url, files={'fileUpload': rec_src.content})
+        rec_src = urllib2.urlopen(file_url)
+        filename = os.path.basename(rec_src.geturl())   # Getting redirected URL.
+        rec_dest = requests.post(file_upload_url, files={'fileUpload': (filename, rec_src)})
         return rec_dest.text
 
     def instamojo_create_offer(self, **kwargs):
@@ -106,9 +108,7 @@ class tweetMojo():
         return res
 
 if __name__ == '__main__':
-
     logging.basicConfig(filename='debug.log', level=logging.DEBUG)
-
     try:
         username = argv[1]
     except IndexError:
@@ -124,22 +124,32 @@ if __name__ == '__main__':
         if my_mojo.check_offer_parameters(offer_details):
             my_mojo.instamojo_auth(MOJO_USERNAME, MOJO_PASSWORD)
             formdata = {}
-            formdata["title"] = offer_details["title"]
-            formdata["description"] = offer_details["desc"]
-            if "inr" in offer_details:
-                formdata["base_inr"] = offer_details["inr"]
-            if "usd" in offer_details:
-                formdata["base_usd"] = offer_details["usd"]
+            formdata["title"] = offer_details["title"][1:-1].capitalize()
+            formdata["description"] = offer_details["desc"][1:-1].capitalize()
+            formdata["currency"] = offer_details["currency"]
+            formdata["base_price"] = offer_details["base"]
+            if 'cover' in offer_details:
+                cover_file_upload_url = my_mojo.get_file_upload_url()
+                if cover_file_upload_url["success"]:
+                    cover_file_upload_url = cover_file_upload_url["upload_url"]
+                else:
+                    raise Exception("Unable to get file upload URL for cover image.")
             file_upload_url = my_mojo.get_file_upload_url()
             if file_upload_url["success"]:
-                file_upload_url = file_upload_url['upload_url']
+                file_upload_url = file_upload_url["upload_url"]
             else:
-                raise Exception("Unable to get file upload URL")
+                raise Exception("Unable to get file upload URL for main file.")
+
             file_upload_json = my_mojo.upload_file_from_url(file_upload_url, offer_details['file'])
             formdata['file_upload_json'] = file_upload_json
+            
+            cover_file_upload_json = my_mojo.upload_file_from_url(cover_file_upload_url, offer_details['cover'])
+            formdata['cover_image_json'] = cover_file_upload_json
+
             print formdata
             print my_mojo.instamojo_create_offer(**formdata)
         else:
             raise Exception("The tweet format does not match the specified format.")
     else:
         raise Exception("The tweet is not about an instamojo offer.")
+
